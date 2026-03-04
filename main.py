@@ -54,7 +54,7 @@ class ChessPipeline:
         video.render(self.file_in_order, self.data, output_path)
         logger_config.success(f"Video generated successfully: {output_path}")
 
-    def publish(self):
+    def upload_video(self):
         try:
             from jebin_lib import HFDatasetClient
 
@@ -76,7 +76,7 @@ class ChessPipeline:
         self.solve()
         self.generate_frames()
         self.render_video()
-        self.publish()
+        self.upload_video()
 
 
 if __name__ == '__main__':
