@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solvechessdotcom"
+version = "0.1.0"
+description = "Chess puzzle solver and board renderer for chess.com daily puzzles"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "lxml",
+    "cairosvg",
+    "moviepy",
+    "Pillow",
+    "custom_logger @ git+https://github.com/jebin2/custom_logger.git",
+    "browser_manager @ git+https://github.com/jebin2/browser_manager.git",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+solvechessdotcom = ["assets/*.svg"]

@@ -1,0 +1,72 @@
+<svg viewBox="0 0 140 140">
+	<defs>
+	  <linearGradient id="siriRainbow" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+		<stop offset="0%" stop-color="#9CF4DF">
+		  <animate attributeName="stop-color" 
+			values="#9CF4DF;#30C5D2;#107AFC;#8A2BE2;#C04DE2;#E25AC8;#9CF4DF" 
+			dur="6s" 
+			repeatCount="indefinite" />
+		</stop>
+		<stop offset="20%" stop-color="#30C5D2">
+		  <animate attributeName="stop-color" 
+			values="#30C5D2;#107AFC;#8A2BE2;#C04DE2;#E25AC8;#9CF4DF;#30C5D2" 
+			dur="6s" 
+			repeatCount="indefinite" />
+		</stop>
+		<stop offset="40%" stop-color="#107AFC">
+		  <animate attributeName="stop-color" 
+			values="#107AFC;#8A2BE2;#C04DE2;#E25AC8;#9CF4DF;#30C5D2;#107AFC" 
+			dur="6s" 
+			repeatCount="indefinite" />
+		</stop>
+		<stop offset="60%" stop-color="#8A2BE2">
+		  <animate attributeName="stop-color" 
+			values="#8A2BE2;#C04DE2;#E25AC8;#9CF4DF;#30C5D2;#107AFC;#8A2BE2" 
+			dur="6s" 
+			repeatCount="indefinite" />
+		</stop>
+		<stop offset="80%" stop-color="#C04DE2">
+		  <animate attributeName="stop-color" 
+			values="#C04DE2;#E25AC8;#9CF4DF;#30C5D2;#107AFC;#8A2BE2;#C04DE2" 
+			dur="6s" 
+			repeatCount="indefinite" />
+		</stop>
+		<stop offset="100%" stop-color="#E25AC8">
+		  <animate attributeName="stop-color" 
+			values="#E25AC8;#9CF4DF;#30C5D2;#107AFC;#8A2BE2;#C04DE2;#E25AC8" 
+			dur="6s" 
+			repeatCount="indefinite" />
+		</stop>
+	  </linearGradient>
+	  
+	  <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+		<feGaussianBlur stdDeviation="2" result="blur" />
+		<feComposite in="SourceGraphic" in2="blur" operator="over" />
+	  </filter>
+	</defs>
+	
+	<rect
+    x="2.5"
+    y="2.5"
+    width="135"
+    height="135"
+	  stroke="url(#siriRainbow)"
+	  stroke-width="3"
+	  fill="none"
+	  rx="3"
+	  ry="3"
+	  filter="url(#subtleGlow)">
+	  
+	  <animate
+		attributeName="stroke-opacity"
+		values="0.8;1;0.8"
+		dur="2.5s"
+		repeatCount="indefinite" />
+		
+	  <animate
+		attributeName="stroke-width"
+		values="3;3.5;3"
+		dur="2.5s"
+		repeatCount="indefinite" />
+	</rect>
+  </svg>
