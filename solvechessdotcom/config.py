@@ -9,7 +9,7 @@ BASE_PATH = os.path.dirname(_pkg_dir)
 TEMP_PATH = os.path.join(BASE_PATH, 'temp')
 os.makedirs(TEMP_PATH, exist_ok=True)
 
-CHESS_HF_REPO_ID = os.getenv("CHESS_HF_REPO_ID")
+PUBLISH_HF_REPO_ID = os.getenv("PUBLISH_HF_REPO_ID")
 CHESS_CRED_NAME = os.getenv("CHESS_CRED_NAME")
 CHESS_TOKEN_NAME = os.getenv("CHESS_TOKEN_NAME")
 

@@ -61,12 +61,12 @@ class ChessPipeline:
             # upload video
             output_path = os.path.join(config.CHESS_MOVES_PATH, 'output.mp4')
             repo_path = "chess/output.mp4"
-            HFDatasetClient(repo_id=config.CHESS_HF_REPO_ID).upload(output_path, repo_path)
+            HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID).upload(output_path, repo_path)
 
             # upload json
             json_path = os.path.join(config.BASE_PATH, 'progress.json')
             repo_path = "chess/progress.json"
-            HFDatasetClient(repo_id=config.CHESS_HF_REPO_ID).upload(json_path, repo_path)
+            HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID).upload(json_path, repo_path)
 
         except Exception as e:
             logger_config.error(f"Failed to publish: {e}")
