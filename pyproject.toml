@@ -22,4 +22,4 @@ dependencies = [
 where = ["."]
 
 [tool.setuptools.package-data]
-solvechessdotcom = ["assets/*.svg"]
+solvechessdotcom = ["assets/*"]
