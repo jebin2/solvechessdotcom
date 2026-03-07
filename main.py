@@ -18,7 +18,7 @@ class ChessPipeline:
         try:
             with open('progress.json') as f:
                 progress = json.load(f)
-            return progress.get('date') and progress.get("FINAL_VIDEO_PATH")
+            return progress.get('date') if progress.get("FINAL_VIDEO_PATH", None) else None
         except Exception:
             return None
 
