@@ -18,9 +18,9 @@ class ChessPipeline:
         try:
             with open('progress.json') as f:
                 progress = json.load(f)
-            return progress.get('date') if progress.get("FINAL_VIDEO_PATH", None) else None
+            return progress.get('date') if progress.get("FINAL_VIDEO_PATH", None) else "1970-01-01"
         except Exception:
-            return None
+            return "1970-01-01"
 
     def fetch_puzzle(self):
         try:
