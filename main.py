@@ -16,9 +16,14 @@ class ChessPipeline:
 
     def get_latest_processed_date(self):
         try:
-            with open('progress.json') as f:
+            with open("progress.json") as f:
                 progress = json.load(f)
-            return progress.get('date') if progress.get("FINAL_VIDEO_PATH", None) else "1970-01-01"
+
+            if progress.get("FINAL_VIDEO_PATH"):
+                return progress.get("date", "1970-01-01")
+
+            return "1970-01-01"
+
         except Exception:
             return "1970-01-01"
 
