@@ -14,6 +14,14 @@ class ChessPipeline:
         self.data = None
         self.file_in_order = []
 
+    @property
+    def repo_main_path(self):
+        return f"chess/{self.data['date']}"
+
+    @property
+    def final_video_repo_path(self):
+        return f"{self.repo_main_path}/{self.data['date']}.mp4"
+
     def get_latest_processed_date(self):
         try:
             with open("progress.json") as f:
@@ -75,7 +83,7 @@ class ChessPipeline:
         with open('progress.json', 'r') as f:
             data = json.load(f)
 
-        data['FINAL_VIDEO_PATH'] = "chess/output.mp4"
+        data['FINAL_VIDEO_PATH'] = self.final_video_repo_path
 
         with open('progress.json', 'w') as f:
             json.dump(data, f, indent=4)
@@ -85,16 +93,10 @@ class ChessPipeline:
     def upload_video(self):
         try:
             from jebin_lib import HFDatasetClient
+            client = HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID)
 
-            # upload video
-            output_path = config.CHESS_OUTPUT_VIDEO
-            repo_path = "chess/output.mp4"
-            HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID).upload(output_path, repo_path)
-
-            # upload json
-            json_path = os.path.join(config.BASE_PATH, 'progress.json')
-            repo_path = "chess/progress.json"
-            HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID).upload(json_path, repo_path)
+            client.upload(config.CHESS_OUTPUT_VIDEO, self.final_video_repo_path)
+            client.upload(os.path.join(config.BASE_PATH, 'progress.json'), f"{self.repo_main_path}/progress.json")
 
         except Exception as e:
             logger_config.error(f"Failed to publish: {e}")
