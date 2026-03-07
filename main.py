@@ -32,7 +32,8 @@ class ChessPipeline:
             if self.data['date'] == progress['date']:
                 self.data = progress
             return True
-        except Exception:
+        except Exception as e:
+            logger_config.error(f"Failed to fetch puzzle: {e}")
             pass
         logger_config.info(f"Puzzle: {json.dumps(self.data, indent=4)}")
         return False
