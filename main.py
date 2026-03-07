@@ -30,8 +30,9 @@ class ChessPipeline:
     def fetch_puzzle(self):
         try:
             self.data = daily_fen.fetch_daily_puzzles()[0]
-            if self.data['date'] != self.get_latest_processed_date():
+            if self.data['date'] == self.get_latest_processed_date():
                 return False
+
             with open('progress.json') as f:
                 progress = json.load(f)
             if self.data['date'] == progress['date']:
