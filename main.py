@@ -14,16 +14,28 @@ class ChessPipeline:
         self.data = None
         self.file_in_order = []
 
-    def fetch_puzzle(self):
-        self.data = daily_fen.fetch_daily_puzzles()[0]
+    def get_latest_processed_date(self):
         try:
+            with open('progress.json') as f:
+                progress = json.load(f)
+            return progress.get('date') and progress.get("FINAL_VIDEO_PATH")
+        except Exception:
+            return None
+
+    def fetch_puzzle(self):
+        try:
+            self.data = daily_fen.fetch_daily_puzzles()[0]
+            if self.data['date'] == self.get_latest_processed_date():
+                return False
             with open('progress.json') as f:
                 progress = json.load(f)
             if self.data['date'] == progress['date']:
                 self.data = progress
+            return True
         except Exception:
             pass
         logger_config.info(f"Puzzle: {json.dumps(self.data, indent=4)}")
+        return False
 
     def solve(self):
         if not self.data.get('solution'):
@@ -55,7 +67,10 @@ class ChessPipeline:
 
         with open('progress.json', 'r') as f:
             data = json.load(f)
-            data['FINAL_VIDEO_PATH'] = "chess/output.mp4"
+
+        data['FINAL_VIDEO_PATH'] = "chess/output.mp4"
+
+        with open('progress.json', 'w') as f:
             json.dump(data, f, indent=4)
 
         logger_config.success(f"Video generated successfully: {output_path}")
@@ -78,11 +93,11 @@ class ChessPipeline:
             logger_config.error(f"Failed to publish: {e}")
 
     def run(self):
-        self.fetch_puzzle()
-        self.solve()
-        self.generate_frames()
-        self.render_video()
-        self.upload_video()
+        if self.fetch_puzzle():
+            self.solve()
+            self.generate_frames()
+            self.render_video()
+            self.upload_video()
 
 
 if __name__ == '__main__':
