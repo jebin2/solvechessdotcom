@@ -1,4 +1,4 @@
-from jebin_lib import load_env
+from jebin_lib import load_env, utils
 load_env()
 
 import json
@@ -33,16 +33,16 @@ class ChessPipeline:
             if self.data['date'] == self.get_latest_processed_date():
                 return False
 
-            with open('progress.json') as f:
-                progress = json.load(f)
-            if self.data['date'] == progress['date']:
-                self.data = progress
-            return True
+            if utils.is_valid_json('progress.json'):
+                with open('progress.json') as f:
+                    progress = json.load(f)
+                if self.data['date'] == progress['date']:
+                    self.data = progress
         except Exception as e:
             logger_config.error(f"Failed to fetch puzzle: {e}")
             pass
         logger_config.info(f"Puzzle: {json.dumps(self.data, indent=4)}")
-        return False
+        return True
 
     def solve(self):
         if not self.data.get('solution'):
