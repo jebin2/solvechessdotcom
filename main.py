@@ -49,9 +49,15 @@ class ChessPipeline:
         logger_config.success(f"Found {len(self.file_in_order)} frames.")
 
     def render_video(self):
-        output_path = os.path.join(config.CHESS_MOVES_PATH, 'output.mp4')
+        output_path = config.CHESS_OUTPUT_VIDEO
         logger_config.info(f"Generating video to {output_path}...")
         video.render(self.file_in_order, self.data, output_path)
+
+        with open('progress.json', 'w') as f:
+            data = json.load(f)
+            data['FINAL_VIDEO_PATH'] = "chess/output.mp4"
+            json.dump(data, f, indent=4)
+
         logger_config.success(f"Video generated successfully: {output_path}")
 
     def upload_video(self):
@@ -59,7 +65,7 @@ class ChessPipeline:
             from jebin_lib import HFDatasetClient
 
             # upload video
-            output_path = os.path.join(config.CHESS_MOVES_PATH, 'output.mp4')
+            output_path = config.CHESS_OUTPUT_VIDEO
             repo_path = "chess/output.mp4"
             HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID).upload(output_path, repo_path)
 

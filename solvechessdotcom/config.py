@@ -17,6 +17,7 @@ CHESS_BOARD_SVG = os.path.join(_pkg_dir, 'assets/images', 'new_chess_board.svg')
 CHESS_BOARD_WITH_PUZZLE_SVG = os.path.join(_pkg_dir, 'assets/images', 'chess_board_with_puzzle.svg')
 CHESS_BOARD_WITH_PUZZLE_JPG = os.path.join(_pkg_dir, 'assets/images', 'chess_board_with_puzzle.jpg')
 CHESS_MOVES_PATH = os.path.join(TEMP_PATH, 'moves')
+CHESS_OUTPUT_VIDEO = os.path.join(TEMP_PATH, 'output.mp4')
 
 CHESS_HIGHLIGHT_GIF = os.path.join(_pkg_dir, 'assets/images', 'chess_highlight.gif')
 
