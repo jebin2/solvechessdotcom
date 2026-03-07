@@ -38,17 +38,20 @@ class ChessPipeline:
     def fetch_puzzle(self):
         try:
             self.data = daily_fen.fetch_daily_puzzles()[0]
-            if self.data['date'] == self.get_latest_processed_date():
-                return False
-
-            if utils.is_valid_json('progress.json'):
-                with open('progress.json') as f:
-                    progress = json.load(f)
-                if self.data['date'] == progress['date']:
-                    self.data = progress
         except Exception as e:
             logger_config.error(f"Failed to fetch puzzle: {e}")
-            pass
+            return False
+
+        if self.data['date'] == self.get_latest_processed_date():
+            logger_config.info(f"Puzzle for {self.data['date']} already completed. Skipping.")
+            return False
+
+        if utils.is_valid_json('progress.json'):
+            with open('progress.json') as f:
+                progress = json.load(f)
+            if self.data['date'] == progress['date']:
+                self.data = progress
+
         logger_config.info(f"Puzzle: {json.dumps(self.data, indent=4)}")
         return True
 
