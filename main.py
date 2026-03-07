@@ -113,4 +113,12 @@ class ChessPipeline:
 
 
 if __name__ == '__main__':
-    ChessPipeline().run()
+    while True:
+        try:
+            ChessPipeline().run()
+            logger_config.info("Completed processing")
+        except Exception as e:
+            logger_config.error(f"Failed to process: {e}")
+            logger_config.error(traceback.format_exc())
+
+        logger_config.info("Sleeping for 60 seconds", seconds=60)
