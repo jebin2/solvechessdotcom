@@ -53,7 +53,7 @@ class ChessPipeline:
         logger_config.info(f"Generating video to {output_path}...")
         video.render(self.file_in_order, self.data, output_path)
 
-        with open('progress.json', 'w') as f:
+        with open('progress.json', 'r') as f:
             data = json.load(f)
             data['FINAL_VIDEO_PATH'] = "chess/output.mp4"
             json.dump(data, f, indent=4)
