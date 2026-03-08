@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Kill any existing instance of this app
-pkill -f "solvechessdotcom_env/.*python" 2>/dev/null || true
+pkill -f "solvechessdotcom_env/.*python main.py $*$" 2>/dev/null || true
 
 RESERVED=2
 TOTAL=$(nproc)
