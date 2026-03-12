@@ -69,7 +69,7 @@ class ChessPipeline:
     def generate_frames(self):
         board.make(self.data)
         logger_config.debug("Getting Chess move files...")
-        files = common.list_files_recursive(config.CHESS_MOVES_PATH)
+        files = utils.list_files_recursive(config.CHESS_MOVES_PATH)
         filtered = [f for f in files if f.endswith('.png') and 'new_chess_board-update-' in f]
 
         def sort_key(filename):
