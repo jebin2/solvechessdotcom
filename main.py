@@ -7,7 +7,7 @@ import traceback
 
 from custom_logger import logger_config
 from solvechessdotcom import board, browser_automation, common, config, daily_fen, stockfish, video
-
+from jebin_lib import HFBucketClient
 
 class ChessPipeline:
 
@@ -60,8 +60,6 @@ class ChessPipeline:
         if not self.data.get('solution'):
             self.data['solution'] = browser_automation.play_chess(self.data['fen'])
         self.data['chess_board'] = stockfish.get_board(self.data['fen'])
-        self.data['CREDENTIAL_NAME'] = config.CHESS_CRED_NAME
-        self.data['TOKEN_NAME'] = config.CHESS_TOKEN_NAME
         with open('progress.json', 'w') as f:
             json.dump(self.data, f, indent=4)
         logger_config.info(f"Chess Puzzle With Solution: {json.dumps(self.data, indent=4)}")
@@ -97,11 +95,14 @@ class ChessPipeline:
 
     def upload_video(self):
         try:
-            from jebin_lib import HFDatasetClient
-            client = HFDatasetClient(repo_id=config.PUBLISH_HF_REPO_ID)
+            hf_client = HFBucketClient(bucket_id=config.HF_BUCKET_ID) if config.HF_BUCKET_ID else None
 
-            client.upload(config.CHESS_OUTPUT_VIDEO, self.final_video_repo_path)
-            client.upload(os.path.join(config.BASE_PATH, 'progress.json'), f"{self.repo_main_path}/progress.json")
+            if hf_client:
+                upload_dir = os.path.join(config.TEMP_PATH, 'upload')
+                os.makedirs(upload_dir, exist_ok=True)
+                os.rename(config.CHESS_OUTPUT_VIDEO, os.path.join(upload_dir, f"{self.data['date']}.mp4"))
+                os.rename(os.path.join(config.BASE_PATH, 'progress.json'), os.path.join(upload_dir, 'progress.json'))
+                hf_client.upload_folder(upload_dir, self.repo_main_path)
 
         except Exception as e:
             logger_config.error(f"Failed to publish: {e}")
