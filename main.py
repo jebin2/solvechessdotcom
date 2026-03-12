@@ -3,6 +3,7 @@ load_env()
 
 import json
 import os
+import traceback
 
 from custom_logger import logger_config
 from solvechessdotcom import board, browser_automation, common, config, daily_fen, stockfish, video
@@ -27,7 +28,7 @@ class ChessPipeline:
             with open("progress.json") as f:
                 progress = json.load(f)
 
-            if progress.get("FINAL_VIDEO_PATH"):
+            if progress.get("PROCESSED", False) and progress.get("FINAL_VIDEO_PATH"):
                 return progress.get("date", "1970-01-01")
 
             return "1970-01-01"
@@ -87,6 +88,7 @@ class ChessPipeline:
             data = json.load(f)
 
         data['FINAL_VIDEO_PATH'] = self.final_video_repo_path
+        data['PROCESSED'] = True
 
         with open('progress.json', 'w') as f:
             json.dump(data, f, indent=4)
