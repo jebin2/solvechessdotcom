@@ -6,7 +6,7 @@ import os
 import traceback
 
 from custom_logger import logger_config
-from solvechessdotcom import board, browser_automation, common, config, daily_fen, stockfish, video
+from solvechessdotcom import board, browser_automation, config, daily_fen, stockfish, video
 from jebin_lib import HFBucketClient
 
 class ChessPipeline:

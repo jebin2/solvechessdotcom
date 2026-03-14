@@ -1,7 +1,6 @@
 from custom_logger import logger_config
 from . import stockfish
 import json
-from . import common
 import copy
 from browser_manager import BrowserManager
 from browser_manager.browser_config import BrowserConfig
