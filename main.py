@@ -3,6 +3,7 @@ load_env()
 
 import json
 import os
+import shutil
 import traceback
 
 from custom_logger import logger_config
@@ -101,7 +102,7 @@ class ChessPipeline:
                 upload_dir = os.path.join(config.TEMP_PATH, 'upload')
                 os.makedirs(upload_dir, exist_ok=True)
                 os.rename(config.CHESS_OUTPUT_VIDEO, os.path.join(upload_dir, f"{self.data['date']}.mp4"))
-                os.rename(os.path.join(config.BASE_PATH, 'progress.json'), os.path.join(upload_dir, 'progress.json'))
+                shutil.copy(os.path.join(config.BASE_PATH, 'progress.json'), os.path.join(upload_dir, 'progress.json'))
                 hf_client.upload_folder(upload_dir, self.repo_main_path)
 
         except Exception as e:
