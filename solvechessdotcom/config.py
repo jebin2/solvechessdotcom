@@ -14,6 +14,8 @@ HF_BUCKET_ID = os.getenv("HF_BUCKET_ID")
 CHESS_BOARD_SVG = os.path.join(_pkg_dir, 'assets/images', 'new_chess_board.svg')
 CHESS_BOARD_WITH_PUZZLE_SVG = os.path.join(_pkg_dir, 'assets/images', 'chess_board_with_puzzle.svg')
 CHESS_BOARD_WITH_PUZZLE_JPG = os.path.join(_pkg_dir, 'assets/images', 'chess_board_with_puzzle.jpg')
+PROGRESS_FILE = os.path.join(TEMP_PATH, 'progress.json')
+
 CHESS_MOVES_PATH = os.path.join(TEMP_PATH, 'moves')
 CHESS_OUTPUT_VIDEO = os.path.join(TEMP_PATH, 'output.mp4')
 

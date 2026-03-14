@@ -26,7 +26,7 @@ class ChessPipeline:
 
     def get_latest_processed_date(self):
         try:
-            with open("progress.json") as f:
+            with open(config.PROGRESS_FILE) as f:
                 progress = json.load(f)
 
             if progress.get("PROCESSED", False) and progress.get("FINAL_VIDEO_PATH"):
@@ -48,8 +48,8 @@ class ChessPipeline:
             logger_config.info(f"Puzzle for {self.data['date']} already completed. Skipping.")
             return False
 
-        if utils.is_valid_json('progress.json'):
-            with open('progress.json') as f:
+        if utils.is_valid_json(config.PROGRESS_FILE):
+            with open(config.PROGRESS_FILE) as f:
                 progress = json.load(f)
             if self.data['date'] == progress['date']:
                 self.data = progress
@@ -61,7 +61,7 @@ class ChessPipeline:
         if not self.data.get('solution'):
             self.data['solution'] = browser_automation.play_chess(self.data['fen'])
         self.data['chess_board'] = stockfish.get_board(self.data['fen'])
-        with open('progress.json', 'w') as f:
+        with open(config.PROGRESS_FILE, 'w') as f:
             json.dump(self.data, f, indent=4)
         logger_config.info(f"Chess Puzzle With Solution: {json.dumps(self.data, indent=4)}")
 
@@ -83,13 +83,13 @@ class ChessPipeline:
         logger_config.info(f"Generating video to {output_path}...")
         video.render(self.file_in_order, self.data, output_path)
 
-        with open('progress.json', 'r') as f:
+        with open(config.PROGRESS_FILE, 'r') as f:
             data = json.load(f)
 
         data['FINAL_VIDEO_PATH'] = self.final_video_repo_path
         data['PROCESSED'] = True
 
-        with open('progress.json', 'w') as f:
+        with open(config.PROGRESS_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
         logger_config.success(f"Video generated successfully: {output_path}")
@@ -102,7 +102,7 @@ class ChessPipeline:
                 upload_dir = os.path.join(config.TEMP_PATH, 'upload')
                 os.makedirs(upload_dir, exist_ok=True)
                 os.rename(config.CHESS_OUTPUT_VIDEO, os.path.join(upload_dir, f"{self.data['date']}.mp4"))
-                shutil.copy(os.path.join(config.BASE_PATH, 'progress.json'), os.path.join(upload_dir, 'progress.json'))
+                shutil.copy(config.PROGRESS_FILE, os.path.join(upload_dir, 'progress.json'))
                 hf_client.upload_folder(upload_dir, self.repo_main_path)
 
         except Exception as e:
