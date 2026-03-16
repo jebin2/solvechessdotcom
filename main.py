@@ -108,8 +108,14 @@ class ChessPipeline:
         except Exception as e:
             logger_config.error(f"Failed to publish: {e}")
 
+    def reset_temp(self):
+        shutil.rmtree(config.TEMP_PATH, ignore_errors=True)
+        os.makedirs(config.TEMP_PATH, exist_ok=True)
+        logger_config.info("Temp directory reset.")
+
     def run(self):
         if self.fetch_puzzle():
+            self.reset_temp()
             self.solve()
             self.generate_frames()
             self.render_video()
