@@ -3,6 +3,7 @@ from PIL import Image, ImageSequence, ImageFilter, ImageDraw, ImageFont
 from moviepy import ImageClip, concatenate_videoclips, AudioFileClip, CompositeAudioClip
 from custom_logger import logger_config
 from solvechessdotcom import config, utils
+from jebin_lib import normalize_loudness
 
 
 def _to_portrait(img):
@@ -115,3 +116,4 @@ def render(file_in_order, data, output_video_path):
     final_audio = CompositeAudioClip([bg_music_main, bg_music_end] + audio_clips)
     final_video = final_video.with_audio(final_audio)
     final_video.write_videofile(output_video_path, fps=fps, codec='libx264', audio_codec='aac', logger=None)
+    normalize_loudness(output_video_path)
