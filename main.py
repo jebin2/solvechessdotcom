@@ -86,7 +86,7 @@ class ChessPipeline:
         with open(config.PROGRESS_FILE, 'r') as f:
             data = json.load(f)
 
-        data['FINAL_VIDEO_PATH'] = self.final_video_repo_path
+        data['FINAL_VIDEO_PATH'] = f"content_to_be_processed/{self.final_video_repo_path}"
         data['PROCESSED'] = True
 
         with open(config.PROGRESS_FILE, 'w') as f:
