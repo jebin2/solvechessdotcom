@@ -10,6 +10,12 @@ TEMP_PATH = os.path.join(BASE_PATH, 'temp')
 os.makedirs(TEMP_PATH, exist_ok=True)
 
 HF_BUCKET_ID = os.getenv("HF_BUCKET_ID")
+HF_TOKEN = os.getenv("HF_TOKEN")
+HF_MOUNT_PATH = os.getenv("HF_MOUNT_PATH")
+
+CONTENT_TO_BE_PROCESSED = HF_MOUNT_PATH if HF_MOUNT_PATH else os.path.join(BASE_PATH, 'content_to_be_processed')
+if not HF_MOUNT_PATH:
+    os.makedirs(CONTENT_TO_BE_PROCESSED, exist_ok=True)
 
 CHESS_BOARD_SVG = os.path.join(_pkg_dir, 'assets/images', 'new_chess_board.svg')
 CHESS_BOARD_WITH_PUZZLE_SVG = os.path.join(_pkg_dir, 'assets/images', 'chess_board_with_puzzle.svg')

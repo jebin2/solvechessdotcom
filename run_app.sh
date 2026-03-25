@@ -3,6 +3,8 @@
 # Kill any existing instance of this app
 pkill -f "solvechessdotcom_env/.*python main.py $*$" 2>/dev/null || true
 
+find /tmp -maxdepth 1 -name "hffs-*" -mmin +720 -exec sudo rm -rf {} +
+
 RESERVED=2
 TOTAL=$(nproc)
 THREADS=$((TOTAL - RESERVED))
