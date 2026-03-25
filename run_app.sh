@@ -2,6 +2,8 @@
 
 # Kill any existing instance of this app
 pkill -f "solvechessdotcom_env/.*python main.py $*$" 2>/dev/null || true
+sleep 1
+find /tmp -maxdepth 1 -name "solvechessdotcom_*.lock" -exec rm -f {} +
 
 find /tmp -maxdepth 1 -name "hffs-*" -mmin +720 -exec sudo rm -rf {} +
 

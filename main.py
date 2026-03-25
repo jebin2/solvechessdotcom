@@ -1,14 +1,15 @@
-from jebin_lib import load_env, utils
+from jebin_lib import load_env, utils, ensure_hf_mounted
 load_env()
 
+import hashlib
 import json
 import os
 import shutil
+import tempfile
 import traceback
 
 from custom_logger import logger_config
 from solvechessdotcom import board, browser_automation, config, daily_fen, stockfish, video
-from jebin_lib import ensure_hf_mounted
 
 class ChessPipeline:
 
@@ -24,6 +25,32 @@ class ChessPipeline:
     @property
     def final_video_repo_path(self):
         return f"{self.repo_main_path}/{self.data['date']}.mp4"
+
+    @property
+    def lock_path(self):
+        key = hashlib.md5(self.dest_dir.encode()).hexdigest()
+        return os.path.join(tempfile.gettempdir(), f"solvechessdotcom_{key}.lock")
+
+    def _acquire_lock(self) -> bool:
+        try:
+            with open(self.lock_path, 'x') as f:
+                f.write(str(os.getpid()))
+            return True
+        except FileExistsError:
+            try:
+                with open(self.lock_path) as f:
+                    pid = int(f.read().strip())
+                os.kill(pid, 0)
+                return False
+            except (ProcessLookupError, ValueError, OSError):
+                os.remove(self.lock_path)
+                return self._acquire_lock()
+
+    def _release_lock(self):
+        try:
+            os.remove(self.lock_path)
+        except FileNotFoundError:
+            pass
 
     @property
     def dest_dir(self):
@@ -118,10 +145,16 @@ class ChessPipeline:
 
     def run(self):
         if self.fetch_puzzle():
-            self.reset_temp()
-            self.solve()
-            self.generate_frames()
-            self.render_video()
+            if not self._acquire_lock():
+                logger_config.warning(f"Folder locked by another process, skipping: {self.dest_dir}")
+                return
+            try:
+                self.reset_temp()
+                self.solve()
+                self.generate_frames()
+                self.render_video()
+            finally:
+                self._release_lock()
 
 
 if __name__ == '__main__':
