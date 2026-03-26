@@ -1,4 +1,4 @@
-from jebin_lib import load_env, utils, ensure_hf_mounted
+from jebin_lib import load_env, utils, ensure_hf_mounted, sync_to_hf
 load_env()
 
 import hashlib
@@ -149,6 +149,7 @@ class ChessPipeline:
                 logger_config.warning(f"Folder locked by another process, skipping: {self.dest_dir}")
                 return
             try:
+                sync_to_hf(config.CONTENT_TO_BE_PROCESSED, config.HF_MOUNT_PATH, subpath=self.repo_main_path)
                 self.reset_temp()
                 self.solve()
                 self.generate_frames()
