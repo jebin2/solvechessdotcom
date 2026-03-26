@@ -1,6 +1,7 @@
 from jebin_lib import load_env, utils, ensure_hf_mounted, sync_to_hf, sync_from_hf
 load_env()
 
+import sys
 import hashlib
 import json
 import os
