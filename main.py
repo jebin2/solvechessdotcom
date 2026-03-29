@@ -1,4 +1,4 @@
-from jebin_lib import load_env, utils, ensure_hf_mounted, sync_to_hf, sync_from_hf
+from jebin_lib import load_env, utils
 load_env()
 
 import sys
@@ -15,7 +15,6 @@ from solvechessdotcom import board, browser_automation, config, daily_fen, stock
 class ChessPipeline:
 
     def __init__(self):
-        ensure_hf_mounted(config.HF_BUCKET_ID, config.HF_TOKEN, config.HF_MOUNT_PATH)
         self.data = None
         self.file_in_order = []
 
@@ -132,6 +131,16 @@ class ChessPipeline:
 
         data['FINAL_VIDEO_PATH'] = self.final_video_repo_path
         data['PROCESSED'] = True
+        data['NEXT_ALLOWED_PUBLISH_DATETIME'] = None  # publish immediately
+        data['PUBLISH_IN_YT'] = True
+        data['PUBLISH_IN_TWITTER'] = False
+        data['YT_CREDENTIAL_FILE'] = "ytcredentials.json"
+        data['YT_TOKEN_FILE'] = "yttoken.json"
+        data['YT_DESCRIPTION'] = "#chess #chessbreakdown #chessshorts"
+        data['YT_TAGS'] = ['ChessBreakdown', 'ChessAnalysis', 'ChessReview', 'recap', 'shorts']
+        data['YOUTUBE_TITLE'] = f"How to solve Chess.com today's daily puzzle : {data['date']}  #ChessPuzzles #ChessTactics #challenges"
+        data['TWITTER_CREDENTIAL_FILE'] = None
+        data['TWITTER_TOKEN_FILE'] = None
 
         with open(self.progress_file, 'w') as f:
             json.dump(data, f, indent=4)
@@ -150,7 +159,6 @@ class ChessPipeline:
                 logger_config.warning(f"Folder locked by another process, skipping: {self.dest_dir}")
                 return
             try:
-                sync_to_hf(config.CONTENT_TO_BE_PROCESSED, config.HF_MOUNT_PATH, subpath=self.repo_main_path)
                 self.reset_temp()
                 self.solve()
                 self.generate_frames()
@@ -160,10 +168,6 @@ class ChessPipeline:
 
 
 if __name__ == '__main__':
-    if '--syncfromhf' in sys.argv:
-        sync_from_hf(config.CONTENT_TO_BE_PROCESSED, config.HF_BUCKET_ID, config.HF_TOKEN)
-        sys.exit(0)
-
     while True:
         try:
             ChessPipeline().run()

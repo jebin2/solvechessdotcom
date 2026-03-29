@@ -9,9 +9,6 @@ BASE_PATH = os.path.dirname(_pkg_dir)
 TEMP_PATH = os.path.join(BASE_PATH, 'temp')
 os.makedirs(TEMP_PATH, exist_ok=True)
 
-HF_BUCKET_ID = os.getenv("HF_BUCKET_ID")
-HF_TOKEN = os.getenv("HF_TOKEN")
-HF_MOUNT_PATH = os.getenv("HF_MOUNT_PATH")
 
 CONTENT_TO_BE_PROCESSED = os.path.join(BASE_PATH, 'content_to_be_processed')
 os.makedirs(CONTENT_TO_BE_PROCESSED, exist_ok=True)
