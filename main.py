@@ -166,14 +166,32 @@ class ChessPipeline:
             finally:
                 self._release_lock()
 
+def main():
+    os.chdir(config.BASE_PATH)
 
-if __name__ == '__main__':
+    one_pass = '--onepass' in sys.argv
+
+    for entry in os.scandir(config.BASE_PATH):
+        if entry.name.startswith(('thread_id_', 'temp', 'chat_bot_ui_handler_logs')) and entry.is_dir():
+            utils.remove_directory(entry.path)
+
+    os.makedirs(config.TEMP_PATH, exist_ok=True)
+
     while True:
+        creator = None
         try:
             ChessPipeline().run()
-            logger_config.info("Completed processing")
-        except Exception as e:
+        except (Exception, SystemExit) as e:
             logger_config.error(f"Failed to process: {e}")
             logger_config.error(traceback.format_exc())
+            del e
+        finally:
+            del creator
+            gc.collect()
 
+        if one_pass:
+            break
         logger_config.info("Sleeping for 60 seconds", seconds=60)
+
+if __name__ == '__main__':
+    main()
