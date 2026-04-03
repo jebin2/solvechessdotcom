@@ -75,7 +75,7 @@ class ChessPipeline:
             if os.path.exists(progress_path):
                 with open(progress_path) as f:
                     progress = json.load(f)
-                if progress.get("PROCESSED", False) and progress.get("FINAL_VIDEO_PATH"):
+                if progress.get("PROCESSED", False) and progress.get("LONG_VIDEO_PATH"):
                     return today
         except Exception:
             pass
@@ -130,7 +130,7 @@ class ChessPipeline:
         with open(self.progress_file, 'r') as f:
             data = json.load(f)
 
-        data['FINAL_VIDEO_PATH'] = self.final_video_repo_path
+        data['LONG_VIDEO_PATH'] = self.final_video_repo_path
         data['PROCESSED'] = True
         data['NEXT_ALLOWED_PUBLISH_DATETIME'] = None  # publish immediately
         data['PUBLISH_IN_YT'] = True
