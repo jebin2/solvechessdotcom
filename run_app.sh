@@ -20,4 +20,5 @@ export MKL_NUM_THREADS=$THREADS
 export NUMEXPR_NUM_THREADS=$THREADS
 export OPENBLAS_NUM_THREADS=$THREADS
 
-exec taskset -c "$CORE_LIST" nice -n 15 python main.py "$@"
+PYTHON="${PYENV_ROOT:-$HOME/.pyenv}/versions/solvechessdotcom_env/bin/python"
+exec taskset -c "$CORE_LIST" nice -n 15 "$PYTHON" main.py "$@"
