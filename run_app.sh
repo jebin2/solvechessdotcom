@@ -18,10 +18,10 @@ cleanup() {
     fi
 }
 
-# Cleanup old temp files
-cleanup "hffs-*" "" "rm -rf"
+# # Cleanup old temp files
+# cleanup "hffs-*" "" "rm -rf"
 
-echo "Cleanup completed."
+# echo "Cleanup completed."
 
 # Kill any existing instance of this app
 pkill -f "solvechessdotcom_env/.*python main.py" 2>/dev/null || true
