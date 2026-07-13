@@ -1,14 +1,19 @@
+import copy
 import os
 import shutil
-import time
 import random
 from typing import Tuple, Optional
 from lxml import etree
-from solvechessdotcom import config, svg_converter
+from solvechessdotcom import config, svg_converter, utils
 from custom_logger import logger_config
+
+SVG_NS = 'http://www.w3.org/2000/svg'
+NS = {'svg': SVG_NS}
 
 SQUARE_SIZE = 135
 TOTAL_SIZE = 945
+# Transparent margin around the piece sprite so stroke/glow are not clipped
+SPRITE_PAD = 30
 
 PIECE_TO_ID = {
     'k': "#king", 'q': "#queen", 'b': "#bishop",
@@ -40,9 +45,8 @@ def get_piece_details_from_notation(notation: str) -> Tuple[str, int, int]:
 
 def get_piece_from_coordinates(tree: etree._ElementTree, is_white: bool, notation: str) -> Optional[str]:
     root = tree.getroot()
-    ns = {'svg': 'http://www.w3.org/2000/svg'}
     group_id = 'whitepieces' if is_white else 'blackpieces'
-    piece_group = root.find(f".//svg:g[@id='{group_id}']", ns)
+    piece_group = root.find(f".//svg:g[@id='{group_id}']", NS)
     if piece_group is not None:
         for child in piece_group:
             if notation in child.get('_id', ''):
@@ -68,7 +72,6 @@ def get_modified_content(is_create, tree, white_notation, black_notation,
                          remove_notation=None, point=None, remove_dest_piece=False):
     logger_config.debug(f"White:: {white_notation}\nBlack:: {black_notation}\nRemove:: {remove_notation}")
     root = tree.getroot()
-    ns = {'svg': 'http://www.w3.org/2000/svg'}
 
     for side in ['white', 'black']:
         if side == 'white' and white_notation is None:
@@ -77,7 +80,7 @@ def get_modified_content(is_create, tree, white_notation, black_notation,
             continue
 
         group_id = 'whitepieces' if side == 'white' else 'blackpieces'
-        pieces_el = root.find(f".//svg:g[@id='{group_id}']", ns)
+        pieces_el = root.find(f".//svg:g[@id='{group_id}']", NS)
 
         if pieces_el is not None:
             if is_create:
@@ -86,15 +89,15 @@ def get_modified_content(is_create, tree, white_notation, black_notation,
             if remove_notation is not None:
                 for notation in remove_notation.split(" "):
                     if white_notation is not None or remove_dest_piece:
-                        el = root.find(".//svg:g[@id='whitepieces']", ns)
+                        el = root.find(".//svg:g[@id='whitepieces']", NS)
                         if el is not None:
                             _remove_element_by_id(el, notation)
                     if black_notation is not None or remove_dest_piece:
-                        el = root.find(".//svg:g[@id='blackpieces']", ns)
+                        el = root.find(".//svg:g[@id='blackpieces']", NS)
                         if el is not None:
                             _remove_element_by_id(el, notation)
 
-            pieces_el = root.find(f".//svg:g[@id='{group_id}']", ns)
+            pieces_el = root.find(f".//svg:g[@id='{group_id}']", NS)
             notations = (white_notation if side == 'white' else black_notation).split(" ")
             for notation in notations:
                 piece_id, x, y = get_piece_details_from_notation(notation)
@@ -113,27 +116,21 @@ def get_modified_content(is_create, tree, white_notation, black_notation,
 
 
 def _change_color(root):
-    ns = {'svg': 'http://www.w3.org/2000/svg'}
-    dark_gradient = root.find(".//svg:linearGradient[@id='darkSquareGradient']", ns)
+    dark_gradient = root.find(".//svg:linearGradient[@id='darkSquareGradient']", NS)
     color = random.choice(config.CHESS_BOARD_COLORS)
     logger_config.debug(f"New stop-color: {color}")
-    for stop in dark_gradient.findall("svg:stop", ns):
+    for stop in dark_gradient.findall("svg:stop", NS):
         style = stop.attrib.get("style")
         stop.set("style", f'{style.split(":")[0]}:{color}')
 
 
 def create_svg(output_file, chess_board_template, white_notation, black_notation):
-    try:
-        logger_config.debug(f"File Path:: {chess_board_template}")
-        tree = etree.parse(chess_board_template)
-        _change_color(tree.getroot())
-        tree.write(output_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-        tree = get_modified_content(True, etree.parse(output_file), white_notation, black_notation)
-        tree.write(output_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-        svg_converter.convert_svg_to_jpg(str(output_file), str(output_file).replace(".svg", ".jpg"))
-    except Exception as e:
-        logger_config.error(f"create_svg: {str(e)}")
-        return None
+    logger_config.debug(f"File Path:: {chess_board_template}")
+    tree = etree.parse(chess_board_template)
+    _change_color(tree.getroot())
+    tree = get_modified_content(True, tree, white_notation, black_notation)
+    tree.write(output_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+    svg_converter.convert_svg_to_jpg(str(output_file), str(output_file).replace(".svg", ".jpg"))
     return output_file
 
 
@@ -145,109 +142,121 @@ def _points_to_move(from_x, from_y, to_x, to_y, n):
     return points
 
 
+def _render_piece_sprite(tree, group_id, piece_id):
+    """Rasterize a single piece (with the board's gradients/stroke/glow) on a
+    transparent canvas of SQUARE_SIZE plus SPRITE_PAD margin on each side."""
+    root = tree.getroot()
+    size = SQUARE_SIZE + 2 * SPRITE_PAD
+    sprite_svg = etree.Element(f'{{{SVG_NS}}}svg', nsmap={None: SVG_NS})
+    sprite_svg.set('viewBox', f'{-SPRITE_PAD} {-SPRITE_PAD} {size} {size}')
+    sprite_svg.set('width', str(size))
+    sprite_svg.set('height', str(size))
+
+    for defs in root.iter(f'{{{SVG_NS}}}defs'):
+        sprite_svg.append(copy.deepcopy(defs))
+
+    src_group = root.find(f".//svg:g[@id='{group_id}']", NS)
+    g = etree.SubElement(sprite_svg, f'{{{SVG_NS}}}g')
+    for attr, val in src_group.attrib.items():
+        if attr != 'id':
+            g.set(attr, val)
+    etree.SubElement(g, f'{{{SVG_NS}}}use', attrib={
+        'href': piece_id, 'x': '0', 'y': '0',
+        'width': str(SQUARE_SIZE), 'height': str(SQUARE_SIZE),
+    })
+    return svg_converter.render_svg_bytes(etree.tostring(sprite_svg))
+
+
 def update_n_create_svg(base_path, is_white_move, file_name, notation_from_to, order):
-    try:
-        logger_config.debug(f"Move by:: {'White' if is_white_move else 'Black'}\n"
-                     f"File:: {file_name}\nNotation:: {notation_from_to}")
-        from_x, from_y = convert_chess_notation_to_pixels(notation_from_to[0], notation_from_to[1])
-        to_x, to_y = convert_chess_notation_to_pixels(notation_from_to[2], notation_from_to[3])
+    """Generate the animation frames for one half-move.
 
-        notation_on_pawn_top = None
-        if len(notation_from_to) > 4 and notation_from_to[4] != "#":
-            notation_on_pawn_top = notation_from_to[4]
+    Rasterizes the board twice (piece lifted / piece landed) and the moving
+    piece once as a transparent sprite, then composites the in-between frames
+    in PIL. Returns the new position SVG path and the move's start pixel
+    position (portrait coordinates, for the highlight overlay).
+    """
+    logger_config.debug(f"Move by:: {'White' if is_white_move else 'Black'}\n"
+                 f"File:: {file_name}\nNotation:: {notation_from_to}")
+    from_x, from_y = convert_chess_notation_to_pixels(notation_from_to[0], notation_from_to[1])
+    to_x, to_y = convert_chess_notation_to_pixels(notation_from_to[2], notation_from_to[3])
 
-        points = _points_to_move(from_x, from_y, to_x, to_y, config.FPS)
-        count = 0
-        remove_notation = notation_from_to[:2] + " " + notation_from_to[2:4]
-        tree = etree.parse(file_name)
-        piece = get_piece_from_coordinates(tree, is_white_move, notation_from_to[:2])
-        add_notation = f'{piece}{notation_from_to[2:4]}'
-        output_svg_file = None
+    promotion_piece = None
+    if len(notation_from_to) > 4 and notation_from_to[4] != "#":
+        promotion_piece = notation_from_to[4]
 
-        for point in points:
-            if (count + 1 == config.FPS) and notation_on_pawn_top:
-                add_notation = f'{notation_on_pawn_top}{add_notation[1:]}'
-            output_svg_file = f'{base_path}/new_chess_board-update-{order}-{count}.svg'
-            tree = etree.parse(file_name)
-            tree = get_modified_content(
-                False, tree,
-                add_notation if is_white_move else None,
-                add_notation if not is_white_move else None,
-                remove_notation=remove_notation,
-                point=point,
-                remove_dest_piece=(count + 1 == config.FPS)
-            )
-            if count == 0:
-                root = tree.getroot()
-                ns = {'svg': 'http://www.w3.org/2000/svg'}
-                g_el = root.find('.//svg:g[@id="current_move"]', ns)
-                g_el.set("piece_point", f"{point[0]},{point[1]}")
+    remove_notation = notation_from_to[:2] + " " + notation_from_to[2:4]
+    group_id = 'whitepieces' if is_white_move else 'blackpieces'
 
-            tree.write(output_svg_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
-            svg_converter.convert_svg_to_png(output_svg_file, output_svg_file.replace(".svg", ".png"))
-            count += 1
+    position_tree = etree.parse(file_name)
+    piece = get_piece_from_coordinates(position_tree, is_white_move, notation_from_to[:2])
+    if piece is None:
+        raise ValueError(f"No piece found at {notation_from_to[:2]} for move {notation_from_to}")
+    final_piece = promotion_piece if promotion_piece else piece
+    final_notation = f'{final_piece}{notation_from_to[2:4]}'
 
-        return output_svg_file
+    # Background: the position with the moving piece lifted off the board
+    # (a captured enemy piece stays visible until the final frame)
+    bg_tree = etree.parse(file_name)
+    bg_group = bg_tree.getroot().find(f".//svg:g[@id='{group_id}']", NS)
+    for notation in remove_notation.split(" "):
+        _remove_element_by_id(bg_group, notation)
+    background = utils.to_portrait(svg_converter.render_svg_tree(bg_tree).convert("RGB"))
 
-    except Exception as e:
-        logger_config.error(f"update_n_create_svg: {str(e)}")
-        return None
+    sprite = _render_piece_sprite(position_tree, group_id, PIECE_TO_ID[piece])
+
+    # Final position: piece landed (promotion applied), captured piece removed
+    final_tree = get_modified_content(
+        False, etree.parse(file_name),
+        final_notation if is_white_move else None,
+        final_notation if not is_white_move else None,
+        remove_notation=remove_notation,
+        point=(to_x, to_y),
+        remove_dest_piece=True,
+    )
+    output_svg_file = f'{base_path}/new_chess_board-update-{order}-{config.FPS - 1}.svg'
+    final_tree.write(output_svg_file, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+
+    points = _points_to_move(from_x, from_y, to_x, to_y, config.FPS)
+    for count, point in enumerate(points[:-1]):
+        frame = background.copy()
+        paste_pos = (point[0] - SPRITE_PAD, point[1] + utils.PORTRAIT_Y_PAD - SPRITE_PAD)
+        frame.paste(sprite, paste_pos, mask=sprite)
+        frame.save(f'{base_path}/new_chess_board-update-{order}-{count}.jpg', quality=92)
+
+    final_frame = utils.to_portrait(svg_converter.render_svg_tree(final_tree).convert("RGB"))
+    final_frame.save(f'{base_path}/new_chess_board-update-{order}-{config.FPS - 1}.jpg', quality=92)
+
+    start_point = (points[0][0], points[0][1] + utils.PORTRAIT_Y_PAD)
+    return output_svg_file, start_point
 
 
-def make(data) -> Optional[str]:
-    try:
+def make(data):
+    white_pieces = data["chess_board"]["white_position"]
+    black_pieces = data["chess_board"]["black_position"]
+    turn = data['turn']
 
-        # data = {'chess_board': {'white_position': ['Qe6', 'Nd5', 'Pg4', 'Pa3', 'Pf3', 'Bf1', 'Kg1'], 'black_position': ['bb8', 're8', 'rh8', 'pb7', 'kh7', 'pa6', 'pc5', 'pd4', 'ph3', 'qd1']}, 'solution': {'move1': {'white': 'e6f7', 'black': 'h7h6'}, 'move2': {'white': 'g4g5', 'black': 'h6g5'}, 'move3': {'white': 'f7g7', 'black': 'g5h5'}, 'move4': {'white': 'd5f6', 'black': 'h5h4'}, 'move5': {'white': 'g7g4', 'black': None}}, 'fen': '1b2r2r/1p5k/p3Q3/2pN4/3p2P1/P4P1p/8/3q1BK1 w - - 0 1', 'date': '2024-10-19', 'turn': 'White'}
+    chess_board = create_svg(
+        config.CHESS_BOARD_WITH_PUZZLE_SVG,
+        config.CHESS_BOARD_SVG,
+        ' '.join(white_pieces),
+        ' '.join(black_pieces)
+    )
 
-        # data = {"chess_board": {"white_position": ["Bh6", "Qa4", "Bc4", "Ne4", "Nc3", "Pd3", "Pg3", "Pb2", "Pc2", "Pf2", "Pg2", "Ra1", "Re1", "Kg1"], "black_position": ["ka8", "bc8", "rh8", "pb7", "pf7", "pg7", "pa6", "qc6", "pc5", "ne5", "rh5"]}, "solution": {"move1": {"white": "h5h1", "black": "g1h1"}, "move2": {"white": "c6h6", "black": "h1g1"}, "move3": {"white": "h6h1", "black": None}}, "fen": "k1b4r/1p3pp1/p1q4B/2p1n2r/Q1B1N3/2NP2P1/1PP2PP1/R3R1K1 b - - 0 1", "date": "2024-10-16", "turn": "Black"}
+    moves_dir = config.CHESS_MOVES_PATH
+    shutil.rmtree(moves_dir, ignore_errors=True)
+    os.makedirs(moves_dir, exist_ok=True)
 
-        white_pieces = data["chess_board"]["white_position"]
-        black_pieces = data["chess_board"]["black_position"]
-        turn = data['turn']
-
-        chess_board = create_svg(
-            config.CHESS_BOARD_WITH_PUZZLE_SVG,
-            config.CHESS_BOARD_SVG,
-            ' '.join(white_pieces),
-            ' '.join(black_pieces)
-        )
-
-        moves_dir = config.CHESS_MOVES_PATH
-        shutil.rmtree(moves_dir, ignore_errors=True)
-        time.sleep(1)
-        os.makedirs(moves_dir, exist_ok=True)
-
-        order = 0
-        for move in data["solution"].values():
-            if turn == 'White':
-                if move["white"]:
+    sides = ('white', 'black') if turn == 'White' else ('black', 'white')
+    move_points = {}
+    order = 0
+    for move in data["solution"].values():
+        for side in sides:
+            for key in (side, f"{side}_castle_move"):
+                notation = move.get(key)
+                if notation:
                     order += 1
-                    chess_board = update_n_create_svg(moves_dir, True, chess_board, move["white"], order)
-                if move.get("white_castle_move"):
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, True, chess_board, move["white_castle_move"], order)
-                if move["black"]:
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, False, chess_board, move["black"], order)
-                if move.get("black_castle_move"):
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, False, chess_board, move["black_castle_move"], order)
-            else:
-                if move["black"]:
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, False, chess_board, move["black"], order)
-                if move.get("black_castle_move"):
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, False, chess_board, move["black_castle_move"], order)
-                if move["white"]:
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, True, chess_board, move["white"], order)
-                if move.get("white_castle_move"):
-                    order += 1
-                    chess_board = update_n_create_svg(moves_dir, True, chess_board, move["white_castle_move"], order)
+                    chess_board, start_point = update_n_create_svg(
+                        moves_dir, side == 'white', chess_board, notation, order)
+                    move_points[order] = start_point
 
-        return config.BASE_PATH
-
-    except Exception as e:
-        logger_config.error(f"Error creating chess board: {str(e)}")
-        return None
+    utils.save_move_points(moves_dir, move_points)

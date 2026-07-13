@@ -22,4 +22,7 @@ dependencies = [
 where = ["."]
 
 [tool.setuptools.package-data]
-solvechessdotcom = ["assets/*"]
+solvechessdotcom = ["assets/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

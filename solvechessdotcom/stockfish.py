@@ -7,15 +7,8 @@ import shutil
 
 def setup_stockfish_path():
     path = shutil.which("stockfish")
-    if not path:
-        logger_config.info("Stockfish not found. Installing via apt...")
-        try:
-            subprocess.run(["sudo", "apt-get", "update"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "-y", "stockfish"], check=True)
-            path = shutil.which("stockfish") or "/usr/games/stockfish"
-        except subprocess.CalledProcessError as e:
-            logger_config.error(f"Failed to install Stockfish: {e}")
-            path = "/usr/games/stockfish"
+    if not path and os.path.exists("/usr/games/stockfish"):
+        path = "/usr/games/stockfish"
     return path
 
 STOCKFISH_PATH = setup_stockfish_path()
@@ -89,6 +82,10 @@ def convert_to_algebraic_notation(board_visual):
     }
 
 def stockfish_process(is_white, cmd, stockfish_path, is_board_only=False):
+    if not stockfish_path:
+        raise RuntimeError(
+            "Stockfish binary not found. Install it first, e.g.: sudo apt-get install -y stockfish"
+        )
     process = subprocess.Popen(
         [stockfish_path],
         stdin=subprocess.PIPE,

@@ -43,8 +43,14 @@ class ChessPipeline:
                     pid = int(f.read().strip())
                 os.kill(pid, 0)
                 return False
-            except (ProcessLookupError, ValueError, OSError):
-                os.remove(self.lock_path)
+            except PermissionError:
+                # Process exists but is owned by another user: lock is live
+                return False
+            except (ProcessLookupError, ValueError, FileNotFoundError):
+                try:
+                    os.remove(self.lock_path)
+                except FileNotFoundError:
+                    pass
                 return self._acquire_lock()
 
     def _release_lock(self):
@@ -67,20 +73,6 @@ class ChessPipeline:
     def output_video(self):
         return os.path.join(self.dest_dir, f"{self.data['date']}.mp4")
 
-    def get_latest_processed_date(self):
-        try:
-            from datetime import date
-            today = str(date.today())
-            progress_path = os.path.join(config.CONTENT_TO_BE_PROCESSED, "chess", today, "progress.json")
-            if os.path.exists(progress_path):
-                with open(progress_path) as f:
-                    progress = json.load(f)
-                if progress.get("PROCESSED", False) and progress.get("LONG_VIDEO_PATH"):
-                    return today
-        except Exception:
-            pass
-        return "1970-01-01"
-
     def fetch_puzzle(self):
         try:
             self.data = daily_fen.fetch_daily_puzzles()[0]
@@ -88,14 +80,13 @@ class ChessPipeline:
             logger_config.error(f"Failed to fetch puzzle: {e}")
             return False
 
-        if self.data['date'] == self.get_latest_processed_date():
-            logger_config.info(f"Puzzle for {self.data['date']} already completed. Skipping.")
-            return False
-
         if utils.is_valid_json(self.progress_file):
             with open(self.progress_file) as f:
                 progress = json.load(f)
-            if self.data['date'] == progress['date']:
+            if self.data['date'] == progress.get('date'):
+                if progress.get("PROCESSED") and progress.get("LONG_VIDEO_PATH"):
+                    logger_config.info(f"Puzzle for {self.data['date']} already completed. Skipping.")
+                    return False
                 self.data = progress
 
         logger_config.info(f"Puzzle: {json.dumps(self.data, indent=4)}")
@@ -113,10 +104,10 @@ class ChessPipeline:
         board.make(self.data)
         logger_config.debug("Getting Chess move files...")
         files = utils.list_files_recursive(config.CHESS_MOVES_PATH)
-        filtered = [f for f in files if f.endswith('.png') and 'new_chess_board-update-' in f]
+        filtered = [f for f in files if f.endswith('.jpg') and 'new_chess_board-update-' in f]
 
         def sort_key(filename):
-            parts = filename.split('/')[-1].replace('.png', '').split('-')
+            parts = filename.split('/')[-1].replace('.jpg', '').split('-')
             return int(parts[-2]), int(parts[-1])
 
         self.file_in_order = sorted(filtered, key=sort_key)
@@ -132,16 +123,8 @@ class ChessPipeline:
 
         data['LONG_VIDEO_PATH'] = self.final_video_repo_path
         data['PROCESSED'] = True
-        data['NEXT_ALLOWED_PUBLISH_DATETIME'] = None  # publish immediately
-        data['PUBLISH_IN_YT'] = True
-        data['PUBLISH_IN_TWITTER'] = False
-        data['YT_CREDENTIAL_FILE'] = "ytcredentials.json"
-        data['YT_TOKEN_FILE'] = "yttoken.json"
-        data['YT_DESCRIPTION'] = "#chess #chessbreakdown #chessshorts"
-        data['YT_TAGS'] = ['ChessBreakdown', 'ChessAnalysis', 'ChessReview', 'recap', 'shorts']
-        data['YOUTUBE_TITLE'] = f"How to solve Chess.com today's daily puzzle : {data['date']}  #ChessPuzzles #ChessTactics #challenges"
-        data['TWITTER_CREDENTIAL_FILE'] = None
-        data['TWITTER_TOKEN_FILE'] = None
+        data.update(config.PUBLISH_DEFAULTS)
+        data['YOUTUBE_TITLE'] = config.YOUTUBE_TITLE_TEMPLATE.format(date=data['date'])
 
         with open(self.progress_file, 'w') as f:
             json.dump(data, f, indent=4)
@@ -179,15 +162,12 @@ def main():
     os.makedirs(config.TEMP_PATH, exist_ok=True)
 
     while True:
-        creator = None
         try:
             ChessPipeline().run()
         except (Exception, SystemExit) as e:
             logger_config.error(f"Failed to process: {e}")
             logger_config.error(traceback.format_exc())
-            del e
         finally:
-            del creator
             gc.collect()
 
         if one_pass:

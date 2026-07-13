@@ -1,7 +1,6 @@
 from custom_logger import logger_config
 from . import stockfish
-import json
-import copy
+from .castling import detect_castling
 from browser_manager import BrowserManager
 from browser_manager.browser_config import BrowserConfig
 
@@ -240,7 +239,7 @@ def play_chess(fen):
 				logger_config.warning("Not solved yet.")
 
 			system_move, system_move_piece = get_system_move_and_piece(page, chess_data, is_white_turn)
-			system_castle_move = detect_castling(chess_data[other_side], best_move, current_piece, side)
+			system_castle_move = detect_castling(chess_data[other_side], system_move, system_move_piece, other_side)
 			logger_config.info(f"System Castle move:: {system_castle_move}")
 
 			moves_made += f" {best_move} {system_move}"
@@ -253,9 +252,9 @@ def play_chess(fen):
 					"black_piece": system_move_piece
 				}
 				if user_castle_move:
-					solution[f"move{moves_exceed}"][f"white_castle_move"] = user_castle_move
+					solution[f"move{moves_exceed}"]["white_castle_move"] = user_castle_move
 				if system_castle_move:
-					solution[f"move{moves_exceed}"][f"white_castle_move"] = system_castle_move
+					solution[f"move{moves_exceed}"]["black_castle_move"] = system_castle_move
 			else:
 				solution[f"move{moves_exceed}"] = {
 					"black": data['best_move'],
@@ -264,139 +263,9 @@ def play_chess(fen):
 					"white_piece": system_move_piece
 				}
 				if user_castle_move:
-					solution[f"move{moves_exceed}"][f"black_castle_move"] = user_castle_move
+					solution[f"move{moves_exceed}"]["black_castle_move"] = user_castle_move
 				if system_castle_move:
-					solution[f"move{moves_exceed}"][f"black_castle_move"] = system_castle_move
+					solution[f"move{moves_exceed}"]["white_castle_move"] = system_castle_move
 
 		return solution
 
-def is_end_reached(page):
-	return page.evaluate("""
-		(() => {
-			var total_moves = document.querySelectorAll('div[data-whole-move-number]').length;
-			return total_moves;
-		})();
-	""")
-
-import copy
-
-def get_castle_move(prev_chess_data, chess_data, whose_turn="white"):
-	cloned_prev = copy.deepcopy(prev_chess_data[whose_turn])
-	cloned_new = copy.deepcopy(chess_data[whose_turn])
-
-	if len(chess_data["system_move"]) == 4:
-		move = chess_data["system_move"]
-		piece = chess_data["system_move_piece"]
-
-		if piece.lower() == 'k':
-			# King move
-			king_start = f"{piece}{move[0:2]}"
-			king_end = f"{piece}{move[2:]}"
-			
-			for lst in (cloned_prev, cloned_new):
-				if king_start in lst:
-					lst.remove(king_start)
-				if king_end in lst:
-					lst.remove(king_end)
-
-			all_items = [item for item in cloned_prev]
-
-			for item in all_items:
-				if item in cloned_new:
-					cloned_prev.remove(item)
-					cloned_new.remove(item)
-
-			# Get rook movement from the difference
-			rook_start = next((item[1:] for item in cloned_prev if item[0].lower() == 'r'), None)
-			rook_end = next((item[1:] for item in cloned_new if item[0].lower() == 'r'), None)
-
-			if rook_start and rook_end:
-				return f"{rook_start}{rook_end}"
-
-	return None
-
-def detect_castling(position: list, move: str, piece: str, color: str) -> str | None:
-    """
-    Detects if castling happened, and returns the correct rook move.
-    Supports both kingside and queenside castling for white and black.
-
-    Args:
-        position: List of pieces in format like ['rd1', 'pb5', 'kc1']
-        move: King's move, like 'e1c1'
-        piece: 'k' (king)
-        color: 'white' or 'black'
-
-    Returns:
-        Rook move in the format 'a1d1' or 'h1f1' or None if not castling
-    """
-    # Determine starting and ending square of the king
-    start, end = move[:2], move[2:]
-
-    # Castling can only occur from initial square
-    if color == 'white' and piece == 'k' and start == 'e1' and end in ['g1', 'c1']:
-        if end == 'g1':
-            # Kingside castling
-            rook_from, rook_to = 'h1', 'f1'
-        else:
-            # Queenside castling
-            rook_from, rook_to = 'a1', 'd1'
-    elif color == 'black' and piece == 'k' and start == 'e8' and end in ['g8', 'c8']:
-        if end == 'g8':
-            rook_from, rook_to = 'h8', 'f8'
-        else:
-            rook_from, rook_to = 'a8', 'd8'
-    else:
-        return None  # Not castling
-
-    # Check if the rook is in the correct position
-    rook_symbol = 'r' if color == 'white' else 'R'
-    rook_present = any(p == rook_symbol + rook_from for p in position)
-
-    if rook_present:
-        return f"{rook_from}{rook_to}"
-    else:
-        return None  # Castling invalid — rook not found
-
-CLOSE_SOURCE_DIALOG = "upload-dialog .close mat-icon"
-SOURCE_ITEM_MORE = ".source-item-more-button"
-SOURCE_REMOVE = ".cdk-overlay-container .mdc-button__label"
-SOURCE_DELETE = ".cdk-overlay-container .submit"
-COPIED_TEXT = "upload-dialog .chip-groups div:nth-child(3) mat-chip span:nth-child(2) span span span:nth-child(1)"
-PASTE_COPIED_TEXT = "upload-dialog textarea"
-PASTE_COPIED_TEXT_SAVE = "upload-dialog paste-text form button"
-CUSTOMIZE = "audio-overview .action-container-buttons div button"
-CUSTOMIZE_AUDIO_TEXT = "producer-audio-dialog textarea"
-GENERATE = "mat-dialog-actions button"
-DOWNLOAD_MENU = "audio-player button:nth-child(4) mat-icon"
-AUDIO_DOWNLOAD = ".cdk-overlay-container a .mat-mdc-menu-item-text"
-AUDIO_LOAD = "audio-overview .mdc-button__label"
-AUDIO_DELETE = ".cdk-overlay-container .delete-button .mat-mdc-menu-item-text"
-AUDIO_DELETE_CONFIRM = ".cdk-overlay-container mat-dialog-actions button:nth-child(2)"
-
-def delete_source_data(page):
-	try:
-		click(page, SOURCE_ITEM_MORE, timeout=5000)
-		click(page, SOURCE_REMOVE, timeout=5000)
-		click(page, SOURCE_DELETE, timeout=5000)
-	except:
-		pass
-
-def delete_audio(page):
-	try:
-		click(page, AUDIO_LOAD, timeout=5000)
-		click(page, DOWNLOAD_MENU, timeout=5000)
-		click(page, AUDIO_DELETE, timeout=5000)
-		click(page, AUDIO_DELETE_CONFIRM, timeout=5000)
-	except:
-		pass
-
-def delete_old_data(page):
-	element = page.query_selector(CLOSE_SOURCE_DIALOG)
-	if element:
-		return True
-
-	delete_source_data(page)
-	delete_audio(page)
-	page.reload()
-	page.wait_for_load_state("domcontentloaded")
-	logger_config.info("Wait for page Load", seconds=4)

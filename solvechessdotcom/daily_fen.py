@@ -1,9 +1,13 @@
 import requests
 import json
+import time
 import unicodedata
 from datetime import datetime, timedelta
 import re
 from custom_logger import logger_config
+
+REQUEST_TIMEOUT = 30
+MAX_RETRIES = 3
 
 def display_width(s):
     """Calculate the display width of a string, accounting for wide chars like emojis."""
@@ -43,11 +47,20 @@ def fetch_daily_puzzles(when=1):
     }
     
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        
+        response = None
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+                response.raise_for_status()
+                break
+            except requests.RequestException as e:
+                if attempt == MAX_RETRIES:
+                    raise
+                logger_config.warning(f"Fetch attempt {attempt} failed ({e}), retrying...")
+                time.sleep(5 * attempt)
+
         puzzles = response.json()
-        
+
         fen_pattern = r'\[FEN "(.*?)"\]'
         puzzle_list = []
         for puzzle in puzzles:
