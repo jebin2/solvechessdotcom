@@ -71,6 +71,7 @@ def fetch_daily_puzzles(when=1):
             puzzle_list.append({
                 'date': puzzle.get('date', ''),
                 'fen': fen,
+                'pgn': pgn_text,
                 'title': puzzle.get('title', ''),
                 'turn': 'White' if fen and ' w ' in fen else 'Black'
             })

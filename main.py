@@ -11,7 +11,7 @@ import tempfile
 import traceback
 
 from custom_logger import logger_config
-from solvechessdotcom import board, browser_automation, config, daily_fen, stockfish, video
+from solvechessdotcom import board, config, daily_fen, solution, video
 
 class ChessPipeline:
 
@@ -80,6 +80,12 @@ class ChessPipeline:
             logger_config.error(f"Failed to fetch puzzle: {e}")
             return False
 
+        try:
+            solution.solution_from_pgn(self.data['pgn'])
+        except Exception as e:
+            logger_config.warning(f"Solution not available in API PGN yet ({e}). Will retry.")
+            return False
+
         if utils.is_valid_json(self.progress_file):
             with open(self.progress_file) as f:
                 progress = json.load(f)
@@ -94,8 +100,8 @@ class ChessPipeline:
 
     def solve(self):
         if not self.data.get('solution'):
-            self.data['solution'] = browser_automation.play_chess(self.data['fen'])
-        self.data['chess_board'] = stockfish.get_board(self.data['fen'])
+            self.data['solution'] = solution.solution_from_pgn(self.data['pgn'])
+        self.data['chess_board'] = solution.get_positions(self.data['fen'])
         with open(self.progress_file, 'w') as f:
             json.dump(self.data, f, indent=4)
         logger_config.info(f"Chess Puzzle With Solution: {json.dumps(self.data, indent=4)}")

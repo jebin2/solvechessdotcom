@@ -167,7 +167,8 @@ def _render_piece_sprite(tree, group_id, piece_id):
     return svg_converter.render_svg_bytes(etree.tostring(sprite_svg))
 
 
-def update_n_create_svg(base_path, is_white_move, file_name, notation_from_to, order):
+def update_n_create_svg(base_path, is_white_move, file_name, notation_from_to, order,
+                        ep_capture_square=None):
     """Generate the animation frames for one half-move.
 
     Rasterizes the board twice (piece lifted / piece landed) and the moving
@@ -204,12 +205,16 @@ def update_n_create_svg(base_path, is_white_move, file_name, notation_from_to, o
 
     sprite = _render_piece_sprite(position_tree, group_id, PIECE_TO_ID[piece])
 
-    # Final position: piece landed (promotion applied), captured piece removed
+    # Final position: piece landed (promotion applied), captured piece removed.
+    # For en passant the captured pawn sits on its own square, not the destination.
+    final_remove = remove_notation
+    if ep_capture_square:
+        final_remove += f" {ep_capture_square}"
     final_tree = get_modified_content(
         False, etree.parse(file_name),
         final_notation if is_white_move else None,
         final_notation if not is_white_move else None,
-        remove_notation=remove_notation,
+        remove_notation=final_remove,
         point=(to_x, to_y),
         remove_dest_piece=True,
     )
@@ -255,8 +260,10 @@ def make(data):
                 notation = move.get(key)
                 if notation:
                     order += 1
+                    ep_square = move.get(f"{side}_ep_capture") if key == side else None
                     chess_board, start_point = update_n_create_svg(
-                        moves_dir, side == 'white', chess_board, notation, order)
+                        moves_dir, side == 'white', chess_board, notation, order,
+                        ep_capture_square=ep_square)
                     move_points[order] = start_point
 
     utils.save_move_points(moves_dir, move_points)

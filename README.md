@@ -6,8 +6,8 @@ Automated pipeline that turns the [chess.com daily puzzle](https://www.chess.com
 
 `main.py` runs `ChessPipeline` in a loop (every 60s, or once with `--onepass`):
 
-1. **Fetch** (`daily_fen.py`) — pulls the daily puzzle (date, FEN, title) from the chess.com callback API.
-2. **Solve** (`browser_automation.py` + `stockfish.py`) — opens the puzzle in a browser (via `browser_manager`), asks Stockfish for the best move, plays it on the page, and records the site's replies until solved.
+1. **Fetch** (`daily_fen.py`) — pulls the daily puzzle (date, FEN, PGN, title) from the chess.com callback API. If the PGN has no solution moves yet, the cycle is skipped and retried.
+2. **Solve** (`solution.py`) — parses the solution straight out of the PGN with `python-chess` (UCI move list, castling rook moves, en passant captures, promotions).
 3. **Render frames** (`board.py`) — builds an SVG board for the position, then for each half-move rasterizes the board twice (piece lifted / piece landed) plus the moving piece as a transparent sprite, and composites the animation frames in PIL.
 4. **Assemble video** (`video.py`) — highlight pulse on the piece about to move, move animations, move sounds, background music, and a blurred end-credit card with the solution.
 
@@ -16,9 +16,7 @@ Output and publish metadata land in `content_to_be_processed/chess/<date>/` (`pr
 ## Requirements
 
 - Python >= 3.10 (production runs in the `solvechessdotcom_env` pyenv env)
-- [Stockfish](https://stockfishchess.org/): `sudo apt-get install -y stockfish`
 - ffmpeg (for moviepy)
-- Docker (for the `browser_manager` browser container)
 
 ```bash
 pip install .
