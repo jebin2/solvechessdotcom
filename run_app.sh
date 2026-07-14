@@ -2,27 +2,6 @@
 
 set -uo pipefail
 
-cleanup() {
-    local pattern="$1"
-    local type="$2"
-    local remove_cmd="$3"
-
-    echo "Cleaning: $pattern"
-
-    if [ -n "$type" ]; then
-        find /tmp -maxdepth 1 -name "$pattern" -type "$type" -mmin +720 -exec $remove_cmd {} + \
-            || echo "Failed to clean: $pattern"
-    else
-        find /tmp -maxdepth 1 -name "$pattern" -mmin +720 -exec $remove_cmd {} + \
-            || echo "Failed to clean: $pattern"
-    fi
-}
-
-# # Cleanup old temp files
-# cleanup "hffs-*" "" "rm -rf"
-
-# echo "Cleanup completed."
-
 # Kill any existing instance of this app
 pkill -f "solvechessdotcom_env/.*python main.py" 2>/dev/null || true
 sleep 1

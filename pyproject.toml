@@ -13,8 +13,8 @@ dependencies = [
     "cairosvg",
     "moviepy",
     "Pillow",
+    "chess",
     "custom_logger @ git+https://github.com/jebin2/custom_logger.git",
-    "browser_manager @ git+https://github.com/jebin2/browser_manager.git",
     "jebin_lib @ git+https://github.com/jebin2/lib.git",
 ]
 
@@ -22,4 +22,7 @@ dependencies = [
 where = ["."]
 
 [tool.setuptools.package-data]
-solvechessdotcom = ["assets/*"]
+solvechessdotcom = ["assets/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

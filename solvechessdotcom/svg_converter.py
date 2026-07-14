@@ -1,34 +1,28 @@
+import io
+
 import cairosvg
-from custom_logger import logger_config
-import os
-import uuid
+from lxml import etree
 from PIL import Image
+from custom_logger import logger_config
 from solvechessdotcom import config
 
-def _tmp_png():
-    os.makedirs(config.TEMP_OUTPUT, exist_ok=True)
-    return os.path.join(config.TEMP_OUTPUT, f"{uuid.uuid4().hex}.png")
+
+def render_svg_bytes(svg_bytes):
+    """Rasterize SVG markup at its natural size and return a PIL RGBA image."""
+    png_bytes = cairosvg.svg2png(bytestring=svg_bytes)
+    return Image.open(io.BytesIO(png_bytes)).convert('RGBA')
 
 
-def convert_svg_to_jpg(svg_file_path, jpg_file_path,
-                       width=None, height=None):
+def render_svg_tree(tree):
+    """Rasterize an lxml SVG tree and return a PIL RGBA image."""
+    return render_svg_bytes(etree.tostring(tree))
+
+
+def convert_svg_to_jpg(svg_file_path, jpg_file_path, width=None, height=None):
     width = width or config.IMAGE_SIZE[0]
     height = height or config.IMAGE_SIZE[1]
-    try:
-        png_path = _tmp_png()
-        cairosvg.svg2png(url=svg_file_path, write_to=png_path)
-        with Image.open(png_path) as img:
-            img = img.resize((width, height), Image.LANCZOS)
-            img.convert('RGB').save(jpg_file_path, 'JPEG')
-        os.remove(png_path)
-        logger_config.debug(f"Saved JPG: {jpg_file_path}")
-    except Exception as e:
-        logger_config.error(f"Error in convert_svg_to_jpg: {e}")
-
-
-def convert_svg_to_png(svg_file_path, png_file_path):
-    try:
-        cairosvg.svg2png(url=svg_file_path, write_to=png_file_path)
-        logger_config.debug(f"Saved PNG: {png_file_path}")
-    except Exception as e:
-        logger_config.error(f"Error in convert_svg_to_png: {e}")
+    png_bytes = cairosvg.svg2png(url=str(svg_file_path))
+    with Image.open(io.BytesIO(png_bytes)) as img:
+        img = img.resize((width, height), Image.LANCZOS)
+        img.convert('RGB').save(jpg_file_path, 'JPEG')
+    logger_config.debug(f"Saved JPG: {jpg_file_path}")
